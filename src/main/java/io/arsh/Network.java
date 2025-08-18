@@ -1,7 +1,6 @@
 package io.arsh;
 
 import io.arsh.utils.ReLU;
-import io.arsh.utils.Sigmoid;
 
 import java.util.ArrayList;
 import java.util.List;
