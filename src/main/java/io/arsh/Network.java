@@ -1,5 +1,6 @@
 package io.arsh;
 
+import io.arsh.utils.ReLU;
 import io.arsh.utils.Sigmoid;
 
 import java.util.ArrayList;
@@ -48,7 +49,7 @@ public class Network {
                 }
 
                 sum += neuron.getBias();
-                double activated = Sigmoid.calculate(-sum);
+                double activated = ReLU.calculate(-sum);
                 neuron.setValue(activated);
             }
         }
@@ -63,7 +64,7 @@ public class Network {
         for (int i = 0; i < outputLayer.getNeurons().size(); i++) {
             Neuron neuron = outputLayer.getNeurons().get(i);
             double error = target[i] - neuron.getValue();
-            neuron.setGradient(error * Sigmoid.calculateDerivative(neuron.getValue()));
+            neuron.setGradient(error * ReLU.calculateDerivative(neuron.getValue()));
         }
 
         for (int layerIndex = layers.size() - 2; layerIndex > 0; layerIndex--) {
@@ -75,7 +76,7 @@ public class Network {
                 for (Neuron nextNeuron : nextLayer.getNeurons()) {
                     sum += nextNeuron.getWeights()[i] * nextNeuron.getGradient();
                 }
-                currentLayer.getNeurons().get(i).setGradient(sum * Sigmoid.calculateDerivative(currentLayer.getNeurons().get(i).getValue()));
+                currentLayer.getNeurons().get(i).setGradient(sum * ReLU.calculateDerivative(currentLayer.getNeurons().get(i).getValue()));
             }
         }
 
