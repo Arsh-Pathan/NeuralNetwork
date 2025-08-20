@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Network implements Serializable {
+
+    @Serial
     private static final long serialVersionUID = 1L;
 
     private final List<Layer> layers = new ArrayList<>();
