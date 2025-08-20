@@ -100,14 +100,28 @@ public class Network implements Serializable {
     }
 
     public void save(String path) throws IOException {
-        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(path))) {
+        File file = new File(path);
+        File parent = file.getParentFile();
+        if (parent != null && !parent.exists()) {
+            parent.mkdirs();
+        }
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(file))) {
             out.writeObject(this);
         }
     }
 
-    public static Network load(String path) throws IOException, ClassNotFoundException {
-        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(path))) {
+    public static Network load(String path) {
+        File file = new File(path);
+        if (!file.exists()) {
+            return null;
+        }
+
+        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(file))) {
             return (Network) in.readObject();
+        } catch (IOException | ClassNotFoundException ex) {
+            ex.printStackTrace();
+            return null;
         }
     }
+
 }
