@@ -1,10 +1,16 @@
 package io.arsh;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class Layer {
+public class Layer implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
+
     private final List<Neuron> neurons = new ArrayList<>();
 
     public Layer(int neuronCount, int inputCount) {

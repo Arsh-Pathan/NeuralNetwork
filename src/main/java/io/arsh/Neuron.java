@@ -1,6 +1,12 @@
 package io.arsh;
 
-public class Neuron {
+import java.io.Serial;
+import java.io.Serializable;
+
+public class Neuron implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     private double[] weights;
     private double bias;
@@ -22,5 +28,4 @@ public class Neuron {
     public void setValue(double value) {this.value = value;}
     public double getBias() {return bias;}
     public void setBias(double bias) {this.bias = bias;}
-
 }

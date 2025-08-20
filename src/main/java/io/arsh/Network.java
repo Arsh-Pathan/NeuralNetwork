@@ -2,10 +2,12 @@ package io.arsh;
 
 import io.arsh.utils.ReLU;
 
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Network {
+public class Network implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     private final List<Layer> layers = new ArrayList<>();
     private double learningRate = 0.1;
@@ -57,7 +59,7 @@ public class Network {
     }
 
     public void train(double[] input, double[] target) {
-        double[] output = forward(input) ;
+        double[] output = forward(input);
 
         Layer outputLayer = layers.getLast();
         for (int i = 0; i < outputLayer.getNeurons().size(); i++) {
@@ -75,7 +77,9 @@ public class Network {
                 for (Neuron nextNeuron : nextLayer.getNeurons()) {
                     sum += nextNeuron.getWeights()[i] * nextNeuron.getGradient();
                 }
-                currentLayer.getNeurons().get(i).setGradient(sum * ReLU.calculateDerivative(currentLayer.getNeurons().get(i).getValue()));
+                currentLayer.getNeurons().get(i).setGradient(
+                        sum * ReLU.calculateDerivative(currentLayer.getNeurons().get(i).getValue())
+                );
             }
         }
 
@@ -93,4 +97,15 @@ public class Network {
         }
     }
 
+    public void save(String path) throws IOException {
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(path))) {
+            out.writeObject(this);
+        }
+    }
+
+    public static Network load(String path) throws IOException, ClassNotFoundException {
+        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(path))) {
+            return (Network) in.readObject();
+        }
+    }
 }
