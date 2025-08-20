@@ -3,4 +3,4 @@ plugins {
 }
 
 group = "io.arsh"
-version = "1.0.3"
+version = "1.0.4"

@@ -14,6 +14,8 @@ public class Network implements Serializable {
     private final List<Layer> layers = new ArrayList<>();
     private double learningRate = 0.1;
 
+    private double[][] lastActivations;
+
     public Network(int... layerSizes) {
         for (int i = 0; i < layerSizes.length; i++) {
             int neuronCount = layerSizes[i];
@@ -34,27 +36,37 @@ public class Network implements Serializable {
         return layers;
     }
 
+    public double[][] getLastActivations() {
+        return lastActivations;
+    }
+
     public double[] forward(double[] input) {
         layers.getFirst().setValues(input);
+
+        lastActivations = new double[layers.size()][];
+        lastActivations[0] = input.clone();
 
         for (int i = 1; i < layers.size(); i++) {
             Layer prevLayer = layers.get(i - 1);
             Layer currentLayer = layers.get(i);
 
             double[] prevValues = prevLayer.getValues();
+            double[] currentValues = new double[currentLayer.getNeurons().size()];
 
-            for (Neuron neuron : currentLayer.getNeurons()) {
+            for (int n = 0; n < currentLayer.getNeurons().size(); n++) {
+                Neuron neuron = currentLayer.getNeurons().get(n);
                 double sum = 0.0;
-
                 double[] weights = neuron.getWeights();
                 for (int w = 0; w < weights.length; w++) {
                     sum += prevValues[w] * weights[w];
                 }
-
                 sum += neuron.getBias();
                 double activated = ReLU.calculate(-sum);
                 neuron.setValue(activated);
+                currentValues[n] = activated;
             }
+
+            lastActivations[i] = currentValues;
         }
 
         return layers.getLast().getValues();
