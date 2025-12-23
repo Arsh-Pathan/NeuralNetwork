@@ -1,4 +1,4 @@
-package io.arsh;
+package io.arsh.models;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -15,12 +15,15 @@ public class Layer implements Serializable {
 
     public Layer(int neuronCount, int inputCount) {
         Random random = new Random();
+
         for (int i = 0; i < neuronCount; i++) {
             double[] weights = new double[inputCount];
+            double stdDev = (inputCount > 0) ? Math.sqrt(2.0 / inputCount) : 0.1;
+
             for (int j = 0; j < inputCount; j++) {
-                weights[j] = (random.nextDouble() * 2) - 1;
+                weights[j] = random.nextGaussian() * stdDev;
             }
-            double bias = (random.nextDouble() * 2) - 1;
+            double bias = 0.1;
             neurons.add(new Neuron(weights, bias, 0.0, 0.0));
         }
     }

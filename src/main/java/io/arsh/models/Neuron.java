@@ -1,4 +1,4 @@
-package io.arsh;
+package io.arsh.models;
 
 import java.io.Serial;
 import java.io.Serializable;
