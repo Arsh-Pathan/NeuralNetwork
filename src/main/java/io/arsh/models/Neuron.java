@@ -11,6 +11,7 @@ public class Neuron implements Serializable {
     private double[] weights;
     private double bias;
     private double value;
+    private double z;   // weighted sum BEFORE activation
     private double gradient;
 
     public Neuron(double[] weights, double bias, double value, double gradient) {
@@ -26,6 +27,15 @@ public class Neuron implements Serializable {
     public void setGradient(double gradient) {this.gradient = gradient;}
     public double getValue() {return value;}
     public void setValue(double value) {this.value = value;}
+
+    public double getZ() {
+        return z;
+    }
+
+    public void setZ(double z) {
+        this.z = z;
+    }
+
     public double getBias() {return bias;}
     public void setBias(double bias) {this.bias = bias;}
 }

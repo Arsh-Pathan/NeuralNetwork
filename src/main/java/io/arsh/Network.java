@@ -83,9 +83,10 @@ public class Network implements Serializable {
         }
         sum += neuron.getBias();
 
+        neuron.setZ(sum);                    // store pre-activation
         double activated = ReLU.calculate(sum);
-
         neuron.setValue(activated);
+
         return activated;
     }
 
@@ -94,15 +95,17 @@ public class Network implements Serializable {
     }
 
     public void train(double[] input, double[] target) {
-        double[] output = forward(input);
+        forward(input);
 
         Layer outputLayer = layers.getLast();
         for (int i = 0; i < outputLayer.getNeurons().size(); i++) {
             Neuron neuron = outputLayer.getNeurons().get(i);
 
-            double error = target[i] - neuron.getValue();
+            double error = neuron.getValue() - target[i]; // correct sign
 
-            neuron.setGradient(error * ReLU.calculateDerivative(neuron.getValue()));
+            neuron.setGradient(
+                    error * ReLU.calculateDerivative(neuron.getZ())
+            );
         }
 
         for (int layerIndex = layers.size() - 2; layerIndex > 0; layerIndex--) {
@@ -110,14 +113,16 @@ public class Network implements Serializable {
             Layer nextLayer = layers.get(layerIndex + 1);
 
             for (int i = 0; i < currentLayer.getNeurons().size(); i++) {
+                Neuron neuron = currentLayer.getNeurons().get(i);
+
                 double errorSum = 0.0;
 
                 for (Neuron nextNeuron : nextLayer.getNeurons()) {
                     errorSum += nextNeuron.getWeights()[i] * nextNeuron.getGradient();
                 }
 
-                currentLayer.getNeurons().get(i).setGradient(
-                        errorSum * ReLU.calculateDerivative(currentLayer.getNeurons().get(i).getValue())
+                neuron.setGradient(
+                        errorSum * ReLU.calculateDerivative(neuron.getZ())
                 );
             }
         }
@@ -130,11 +135,12 @@ public class Network implements Serializable {
 
             for (Neuron neuron : currentLayer.getNeurons()) {
                 double[] weights = neuron.getWeights();
+
                 for (int w = 0; w < weights.length; w++) {
-                    double delta = learningRate * neuron.getGradient() * prevValues[w];
-                    weights[w] += delta;
+                    weights[w] -= learningRate * neuron.getGradient() * prevValues[w];
                 }
-                neuron.setBias(neuron.getBias() + learningRate * neuron.getGradient());
+
+                neuron.setBias(neuron.getBias() - learningRate * neuron.getGradient());
             }
         }
     }
