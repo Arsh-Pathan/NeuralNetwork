@@ -3,6 +3,7 @@ package io.arsh;
 import io.arsh.models.Layer;
 import io.arsh.models.Neuron;
 import io.arsh.utils.ReLU;
+import io.arsh.utils.Softmax;
 import io.arsh.visualizer.Visualizer;
 
 import javax.swing.*;
@@ -56,18 +57,37 @@ public class Network implements Serializable {
         lastActivations[0] = input.clone();
 
         for (int i = 1; i < layers.size(); i++) {
+
             Layer prevLayer = layers.get(i - 1);
             Layer currentLayer = layers.get(i);
 
             double[] prevValues = prevLayer.getValues();
-            double[] currentValues = new double[currentLayer.getNeurons().size()];
+            double[] zValues = new double[currentLayer.getNeurons().size()];
 
             for (int n = 0; n < currentLayer.getNeurons().size(); n++) {
-                double activated = getActivated(currentLayer, n, prevValues);
-                currentValues[n] = activated;
+                Neuron neuron = currentLayer.getNeurons().get(n);
+
+                double sum = 0.0;
+                double[] weights = neuron.getWeights();
+
+                for (int w = 0; w < weights.length; w++)
+                    sum += prevValues[w] * weights[w];
+
+                sum += neuron.getBias();
+
+                neuron.setZ(sum);
+                zValues[n] = sum;
             }
 
-            lastActivations[i] = currentValues;
+            double[] activated;
+
+            if (i == layers.size() - 1)
+                activated = Softmax.apply(zValues);
+            else
+                activated = ReLU.applyArray(zValues);
+
+            currentLayer.setValues(activated);
+            lastActivations[i] = activated;
         }
 
         return layers.getLast().getValues();
@@ -101,11 +121,10 @@ public class Network implements Serializable {
         for (int i = 0; i < outputLayer.getNeurons().size(); i++) {
             Neuron neuron = outputLayer.getNeurons().get(i);
 
-            double error = neuron.getValue() - target[i]; // correct sign
+            double predicted = neuron.getValue();
+            double error = predicted - target[i];
 
-            neuron.setGradient(
-                    error * ReLU.calculateDerivative(neuron.getZ())
-            );
+            neuron.setGradient(error);
         }
 
         for (int layerIndex = layers.size() - 2; layerIndex > 0; layerIndex--) {

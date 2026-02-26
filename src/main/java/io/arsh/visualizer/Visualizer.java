@@ -74,7 +74,8 @@ public class Visualizer extends JPanel {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        if (network == null || network.getLayers().isEmpty()) return;
+        if (network == null || network.getLayers().isEmpty())
+            return;
 
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -153,12 +154,11 @@ public class Visualizer extends JPanel {
                 float act = (float) Math.max(0, Math.min(1, neuron.getValue()));
 
                 Color bg = getBackground();
-                Color fill = (act < 0.05f) ? bg :
-                        new Color(
+                Color fill = (act < 0.05f) ? bg
+                        : new Color(
                                 (int) (bg.getRed() + act * (120 - bg.getRed())),
                                 (int) (bg.getGreen() + act * (200 - bg.getGreen())),
-                                (int) (bg.getBlue() + act * (255 - bg.getBlue()))
-                        );
+                                (int) (bg.getBlue() + act * (255 - bg.getBlue())));
 
                 g2.setColor(fill);
                 g2.fillOval(layerX - neuronRadius, y - neuronRadius,
@@ -178,8 +178,7 @@ public class Visualizer extends JPanel {
 
             g2.setFont(new Font("Consolas", Font.BOLD, 12));
             g2.setColor(new Color(200, 200, 200, 200));
-            String label = (i == 0) ? "Input" :
-                    (i == layerCount - 1 ? "Output" : "Hidden " + i);
+            String label = (i == 0) ? "Input" : (i == layerCount - 1 ? "Output" : "Hidden " + i);
             g2.drawString(label,
                     layerX - g2.getFontMetrics().stringWidth(label) / 2, 25);
         }
