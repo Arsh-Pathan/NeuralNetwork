@@ -1,28 +1,38 @@
 package io.arsh;
 
-
 public class TrainMnist {
 
     public static void main(String[] args) throws Exception {
 
-        Network net = new Network(784,128,64,10);
-        net.setLearningRate(0.001);
+        Network net = new Network(784, 128, 64, 10);
+        io.arsh.visualizer.Visualizer viz = net.show();
+        net.setLearningRate(0.01);
 
         MnistCSV.load("mnist_train.csv", 10000);
 
-        for(int epoch=0; epoch<50; epoch++) {
+        int epochs = 10;
+        for (int epoch = 0; epoch < epochs; epoch++) {
 
-            for(int i=0;i<MnistCSV.images.size();i++) {
-                net.train(
-                        MnistCSV.images.get(i),
-                        MnistCSV.oneHot(MnistCSV.labels.get(i))
-                );
+            for (int i = 0; i < MnistCSV.images.size(); i++) {
+                double[] input = MnistCSV.images.get(i);
+                int label = MnistCSV.labels.get(i);
 
-                if(i%1000==0)
-                    System.out.println("Epoch "+epoch+" : "+i+"/"+MnistCSV.images.size());
+                net.train(input, MnistCSV.oneHot(label));
+
+                // Update visualizer
+                viz.updateTraining(input, label, epoch, epochs, i, MnistCSV.images.size());
+
+                // Slow down for visualization (controlled by slider)
+                int delay = viz.getTrainingDelay();
+                if (delay > 0) {
+                    Thread.sleep(delay);
+                }
+
+                if (i % 1000 == 0)
+                    System.out.println("Epoch " + epoch + " : " + i + "/" + MnistCSV.images.size());
             }
 
-            System.out.println("Epoch "+epoch+" complete");
+            System.out.println("Epoch " + epoch + " complete");
         }
 
         net.save("mnist.nn");

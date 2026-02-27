@@ -57,7 +57,6 @@ public class Mnist extends JPanel {
             @Override
             public void mouseReleased(MouseEvent e) {
                 livePredict();
-                // Optional auto-clear
                 clearTimer = new Timer(3000, ev -> clear());
                 clearTimer.setRepeats(false);
                 clearTimer.start();
@@ -70,7 +69,6 @@ public class Mnist extends JPanel {
 
     private void drawFeatheredPoint(int x, int y) {
         g2.setColor(Color.WHITE);
-        // Draw a soft brush
         for (int i = 0; i < 5; i++) {
             float alpha = 1.0f - (i / 5.0f);
             g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha * 0.4f));
@@ -78,7 +76,7 @@ public class Mnist extends JPanel {
             g2.fillOval(x - r / 2, y - r / 2, r, r);
         }
         g2.setComposite(AlphaComposite.SrcOver);
-        g2.fillOval(x - 8, y - 8, 16, 16);
+        g2.fillOval(x - 8, y - 8, 8, 8);
     }
 
     private void drawFeatheredLine(int x1, int y1, int x2, int y2) {
@@ -86,7 +84,7 @@ public class Mnist extends JPanel {
         g2.setStroke(new BasicStroke(20, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
         g2.drawLine(x1, y1, x2, y2);
 
-        // Secondary softer stroke
+        // Secondary softer
         g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.3f));
         g2.setStroke(new BasicStroke(28, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
         g2.drawLine(x1, y1, x2, y2);
@@ -98,7 +96,6 @@ public class Mnist extends JPanel {
         super.paintComponent(g);
         g.drawImage(canvas, 0, 0, null);
 
-        // Border
         Graphics2D g2d = (Graphics2D) g;
         g2d.setColor(ACCENT);
         g2d.setStroke(new BasicStroke(2));

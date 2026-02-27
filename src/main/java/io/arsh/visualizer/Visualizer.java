@@ -8,46 +8,72 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.AffineTransform;
-import java.text.DecimalFormat;
+import java.awt.geom.Line2D;
 import java.util.List;
 
 public class Visualizer extends JPanel {
 
     private final Network network;
-    private final DecimalFormat df = new DecimalFormat("#.##");
 
-    private double scale = 1.0;
-    private double offsetX = 0;
-    private double offsetY = 0;
+    private double scale = 0.8;
+    private double offsetX = 50;
+    private double offsetY = 120; // Centered vertically
 
     private Point lastMouse;
+
+    private double[] currentInput;
+    private int currentTarget = -1;
+    private int currentEpoch = 0;
+    private int totalEpochs = 0;
+    private int trainIndex = 0;
+    private int totalTrainItems = 0;
+    private int trainingDelay = 50;
+    private JSlider speedSlider;
+
+    // Theme Colors (Matching the image)
+    private static final Color BG_COLOR = new Color(0, 0, 0);
+    private static final Color NEURON_BORDER = new Color(220, 220, 220, 180);
+    private static final Color POS_WEIGHT = new Color(255, 255, 255); // White
+    private static final Color NEG_WEIGHT = new Color(200, 170, 0); // Dark Yellow
+
+    private static final int MAX_VISIBLE_NEURONS = 18;
 
     public Visualizer(Network network) {
         this.network = network;
         setPreferredSize(new Dimension(1400, 900));
-        setBackground(new Color(20, 22, 26));
+        setBackground(BG_COLOR);
+        setLayout(null); // Absolute positioning for the slider
 
+        setupSpeedSlider();
         enableZoomAndPan();
     }
 
-    private void enableZoomAndPan() {
+    private void setupSpeedSlider() {
+        speedSlider = new JSlider(0, 1000, 50);
+        speedSlider.setBounds(20, 100, 200, 25);
+        speedSlider.setBackground(BG_COLOR);
+        speedSlider.setForeground(Color.WHITE);
+        speedSlider.setOpaque(false);
+        speedSlider.addChangeListener(e -> trainingDelay = speedSlider.getValue());
+        add(speedSlider);
+    }
 
+    public int getTrainingDelay() {
+        return trainingDelay;
+    }
+
+    private void enableZoomAndPan() {
         addMouseWheelListener(e -> {
             double zoomFactor = 1.1;
             double oldScale = scale;
-
-            if (e.getPreciseWheelRotation() < 0) {
+            if (e.getPreciseWheelRotation() < 0)
                 scale *= zoomFactor;
-            } else {
+            else
                 scale /= zoomFactor;
-            }
-
-            scale = Math.max(0.2, Math.min(5.0, scale));
-
+            scale = Math.max(0.1, Math.min(10.0, scale));
             Point p = e.getPoint();
             offsetX = p.x - (p.x - offsetX) * (scale / oldScale);
             offsetY = p.y - (p.y - offsetY) * (scale / oldScale);
-
             repaint();
         });
 
@@ -79,8 +105,14 @@ public class Visualizer extends JPanel {
 
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
+        // 1. Draw Static Overlays (Input/Output/Stats)
+        drawInputImage(g2);
+        drawPredictionBars(g2);
+        drawStats(g2);
+
+        // 2. Translate and Scale the Network
         AffineTransform oldTransform = g2.getTransform();
         g2.translate(offsetX, offsetY);
         g2.scale(scale, scale);
@@ -90,109 +122,231 @@ public class Visualizer extends JPanel {
         g2.setTransform(oldTransform);
     }
 
-    private void drawNetwork(Graphics2D g2) {
+    private void drawInputImage(Graphics2D g2) {
+        if (currentInput == null)
+            return;
 
-        List<Layer> layers = network.getLayers();
-        int layerCount = layers.size();
-        int width = getWidth();
-        int height = getHeight();
+        int size = 150;
+        int x = 50;
+        int y = getHeight() - size - 50;
 
-        int marginX = 100;
-        int marginY = 80;
-        int availableWidth = width - 2 * marginX;
-        int layerSpacing = availableWidth / Math.max(1, layerCount - 1);
+        // Label
+        g2.setColor(Color.WHITE);
+        g2.setFont(new Font("SansSerif", Font.BOLD, 14));
+        g2.drawString("INPUT IMAGE", x, y - 10);
 
-        int maxNeurons = layers.stream()
-                .mapToInt(l -> l.getNeurons().size())
-                .max().orElse(1);
+        // Background
+        g2.setColor(new Color(30, 30, 30));
+        g2.fillRect(x - 5, y - 5, size + 10, size + 10);
 
-        int availableHeight = height - 2 * marginY;
-        int neuronSpacing = Math.max(20, availableHeight / Math.max(1, maxNeurons - 1));
-        int neuronRadius = Math.max(10, Math.min(18, neuronSpacing / 2));
-
-        for (int i = 0; i < layerCount; i++) {
-            Layer layer = layers.get(i);
-            int neuronCount = layer.getNeurons().size();
-            int layerX = marginX + i * layerSpacing;
-            int totalHeight = (neuronCount - 1) * neuronSpacing;
-            int startY = (height - totalHeight) / 2;
-
-            // Connections
-            if (i > 0) {
-                Layer prev = layers.get(i - 1);
-                int prevX = marginX + (i - 1) * layerSpacing;
-                int prevCount = prev.getNeurons().size();
-                int prevTotalHeight = (prevCount - 1) * neuronSpacing;
-                int prevStartY = (height - prevTotalHeight) / 2;
-
-                for (int n = 0; n < neuronCount; n++) {
-                    Neuron neuron = layer.getNeurons().get(n);
-                    int y1 = startY + n * neuronSpacing;
-
-                    double[] weights = neuron.getWeights();
-                    for (int w = 0; w < weights.length; w++) {
-                        double weight = weights[w];
-                        int y0 = prevStartY + w * neuronSpacing;
-
-                        float intensity = (float) Math.min(1.0, Math.abs(weight));
-                        int alpha = (int) (80 + 175 * intensity);
-
-                        Color color = weight >= 0
-                                ? new Color(70, 170, 255, alpha)
-                                : new Color(255, 255, 255, alpha);
-
-                        g2.setColor(color);
-                        g2.setStroke(new BasicStroke(0.8f + 2f * intensity));
-                        g2.drawLine(prevX + neuronRadius, y0, layerX - neuronRadius, y1);
-                    }
-                }
+        // Pixels
+        for (int i = 0; i < 28; i++) {
+            for (int j = 0; j < 28; j++) {
+                float val = (float) currentInput[i * 28 + j];
+                g2.setColor(new Color(val, val, val));
+                g2.fillRect(x + j * (size / 28), y + i * (size / 28), (size / 28) + 1, (size / 28) + 1);
             }
+        }
 
-            for (int n = 0; n < neuronCount; n++) {
-                int y = startY + n * neuronSpacing;
-                Neuron neuron = layer.getNeurons().get(n);
-                float act = (float) Math.max(0, Math.min(1, neuron.getValue()));
-
-                Color bg = getBackground();
-                Color fill = (act < 0.05f) ? bg
-                        : new Color(
-                                (int) (bg.getRed() + act * (120 - bg.getRed())),
-                                (int) (bg.getGreen() + act * (200 - bg.getGreen())),
-                                (int) (bg.getBlue() + act * (255 - bg.getBlue())));
-
-                g2.setColor(fill);
-                g2.fillOval(layerX - neuronRadius, y - neuronRadius,
-                        neuronRadius * 2, neuronRadius * 2);
-
-                g2.setColor(Color.WHITE);
-                g2.setStroke(new BasicStroke(1.3f));
-                g2.drawOval(layerX - neuronRadius, y - neuronRadius,
-                        neuronRadius * 2, neuronRadius * 2);
-
-                g2.setFont(new Font("Consolas", Font.BOLD, 10));
-                String val = df.format(neuron.getValue());
-                FontMetrics fm = g2.getFontMetrics();
-                g2.drawString(val, layerX - fm.stringWidth(val) / 2,
-                        y + fm.getAscent() / 2 - 2);
-            }
-
-            g2.setFont(new Font("Consolas", Font.BOLD, 12));
-            g2.setColor(new Color(200, 200, 200, 200));
-            String label = (i == 0) ? "Input" : (i == layerCount - 1 ? "Output" : "Hidden " + i);
-            g2.drawString(label,
-                    layerX - g2.getFontMetrics().stringWidth(label) / 2, 25);
+        // Target Label
+        if (currentTarget != -1) {
+            g2.setColor(POS_WEIGHT);
+            g2.drawString("TARGET: " + currentTarget, x, y + size + 25);
         }
     }
 
-    public static void show(Network network) {
-        JFrame frame = new JFrame("Neural Network Visualizer");
-        Visualizer panel = new Visualizer(network);
+    private void drawPredictionBars(Graphics2D g2) {
+        if (network == null)
+            return;
+        List<Layer> layers = network.getLayers();
+        double[] output = layers.get(layers.size() - 1).getValues();
+        if (output == null)
+            return;
 
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.add(new JScrollPane(panel));
+        int x = getWidth() - 300;
+        int y = getHeight() - 320;
+
+        g2.setColor(Color.WHITE);
+        g2.setFont(new Font("SansSerif", Font.BOLD, 14));
+        g2.drawString("LIVE PREDICTIONS", x, y - 10);
+
+        for (int i = 0; i < 10; i++) {
+            int barY = y + i * 25;
+            double p = output[i];
+
+            g2.setColor(new Color(255, 255, 255, 100));
+            g2.setFont(new Font("Monospaced", Font.PLAIN, 12));
+            g2.drawString(i + ":", x, barY + 15);
+
+            // Bar BG
+            g2.setColor(new Color(255, 255, 255, 20));
+            g2.fillRoundRect(x + 25, barY + 2, 200, 16, 4, 4);
+
+            // Bar Fill
+            g2.setColor(p > 0.5 ? POS_WEIGHT : new Color(100, 100, 100));
+            int barWidth = (int) (Math.max(0, Math.min(1, p)) * 200);
+            g2.fillRoundRect(x + 25, barY + 2, barWidth, 16, 4, 4);
+
+            // Percentage
+            g2.setColor(Color.WHITE);
+            g2.drawString(String.format("%.1f%%", p * 100), x + 235, barY + 15);
+        }
+    }
+
+    private void drawStats(Graphics2D g2) {
+        g2.setColor(Color.WHITE);
+        g2.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        int y = 30;
+        g2.drawString("EPOCH: " + (currentEpoch + 1) + "/" + totalEpochs, 20, y);
+        g2.drawString("TRAIN PROGRESS: " + trainIndex + "/" + totalTrainItems, 20, y + 20);
+
+        g2.drawString("TRAINING DELAY: " + trainingDelay + " ms", 20, y + 60);
+
+        // Simple progress bar
+        if (totalTrainItems > 0) {
+            int bw = 200;
+            g2.setColor(new Color(255, 255, 255, 30));
+            g2.fillRect(20, y + 30, bw, 5);
+            g2.setColor(POS_WEIGHT);
+            g2.fillRect(20, y + 30, (int) ((double) trainIndex / totalTrainItems * bw), 5);
+        }
+    }
+
+    public void updateTraining(double[] input, int target, int epoch, int totalEpochs, int index, int total) {
+        this.currentInput = input;
+        this.currentTarget = target;
+        this.currentEpoch = epoch;
+        this.totalEpochs = totalEpochs;
+        this.trainIndex = index;
+        this.totalTrainItems = total;
+        repaint();
+    }
+
+    private void drawNetwork(Graphics2D g2) {
+        List<Layer> layers = network.getLayers();
+        int layerCount = layers.size();
+
+        int layerGap = 260;
+        int neuronGap = 40;
+        int neuronSize = 24;
+        int neuronRadius = neuronSize / 2;
+
+        // Pre-calculate neuron positions for visible neurons only
+        int[][] neuronY = new int[layerCount][];
+        boolean[] isCapped = new boolean[layerCount];
+
+        for (int i = 0; i < layerCount; i++) {
+            int count = layers.get(i).getNeurons().size();
+            int visibleCount = Math.min(count, MAX_VISIBLE_NEURONS);
+            isCapped[i] = count > MAX_VISIBLE_NEURONS;
+
+            neuronY[i] = new int[visibleCount];
+            int totalHeight = (visibleCount - 1) * neuronGap;
+            int startY = -totalHeight / 2 + 200; // Centered
+            for (int n = 0; n < visibleCount; n++) {
+                neuronY[i][n] = startY + n * neuronGap;
+            }
+        }
+
+        // Draw Connections First (Bottom to Top)
+        for (int i = 1; i < layerCount; i++) {
+            Layer currentLayer = layers.get(i);
+            int prevCount = neuronY[i - 1].length;
+            int currCount = neuronY[i].length;
+
+            for (int n = 0; n < currCount; n++) {
+                Neuron neuron = currentLayer.getNeurons().get(n);
+                double[] weights = neuron.getWeights();
+                int x1 = i * layerGap;
+                int y1 = neuronY[i][n];
+
+                for (int w = 0; w < prevCount; w++) {
+                    double weight = weights[w];
+                    int x0 = (i - 1) * layerGap;
+                    int y0 = neuronY[i - 1][w];
+
+                    float strength = (float) Math.abs(weight);
+                    float alpha = Math.min(1.0f, 0.15f + strength * 0.6f);
+
+                    Color c = weight > 0 ? POS_WEIGHT : NEG_WEIGHT;
+                    g2.setColor(new Color(c.getRed(), c.getGreen(), c.getBlue(), (int) (alpha * 255)));
+                    g2.setStroke(new BasicStroke(0.6f + strength * 1.2f));
+                    g2.draw(new Line2D.Float(x0 + neuronRadius, y0, x1 - neuronRadius, y1));
+                }
+            }
+        }
+
+        // Draw Neurons
+        for (int i = 0; i < layerCount; i++) {
+            Layer layer = layers.get(i);
+            int x = i * layerGap;
+            int visibleCount = neuronY[i].length;
+
+            if (i == 0) { // Inputs Label (Bracket style)
+                g2.setColor(Color.WHITE);
+                g2.setFont(new Font("SansSerif", Font.PLAIN, 24));
+                g2.drawString("784", x - 100, 210);
+
+                g2.setStroke(new BasicStroke(2));
+                int topY = neuronY[i][0] - 15;
+                int botY = neuronY[i][visibleCount - 1] + 15;
+                int bracketX = x - 45;
+
+                // Draw a bracket "["
+                g2.drawLine(bracketX, topY, bracketX - 10, topY); // Top tip
+                g2.drawLine(bracketX, botY, bracketX - 10, botY); // Bot tip
+                g2.drawLine(bracketX, topY, bracketX, botY); // Main vertical line
+            }
+
+            for (int n = 0; n < visibleCount; n++) {
+                int y = neuronY[i][n];
+                double val = layer.getNeurons().get(n).getValue();
+                float act = (float) Math.max(0, Math.min(1, val));
+
+                // Dot dot dot for capped layers
+                if (isCapped[i] && n == visibleCount / 2) {
+                    g2.setColor(Color.WHITE);
+                    g2.fillOval(x - 2, y - 15, 4, 4);
+                    g2.fillOval(x - 2, y, 4, 4);
+                    g2.fillOval(x - 2, y + 15, 4, 4);
+                    continue;
+                }
+
+                // Neuron Circle
+                g2.setColor(BG_COLOR);
+                g2.fillOval(x - neuronRadius, y - neuronRadius, neuronSize, neuronSize);
+
+                // Activation Glow/Fill
+                if (act > 0.05f) {
+                    g2.setColor(new Color(255, 255, 255, (int) (act * 255)));
+                    g2.fillOval(x - neuronRadius + 2, y - neuronRadius + 2, neuronSize - 4, neuronSize - 4);
+                }
+
+                g2.setColor(NEURON_BORDER);
+                g2.setStroke(new BasicStroke(1.5f));
+                g2.drawOval(x - neuronRadius, y - neuronRadius, neuronSize, neuronSize);
+
+                // Output labels (0-9)
+                if (i == layerCount - 1) {
+                    g2.setColor(Color.WHITE);
+                    g2.setFont(new Font("SansSerif", Font.PLAIN, 16));
+                    g2.drawString("" + n, x + 25, y + 7);
+                }
+            }
+        }
+    }
+
+    public static Visualizer show(Network network) {
+        JFrame frame = new JFrame("Neural Network Training Visualizer");
+        Visualizer panel = new Visualizer(network);
+        frame.getContentPane().add(panel);
+        frame.setBackground(BG_COLOR);
+        frame.pack();
         frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
         frame.setVisible(true);
-
-        new Timer(1000 / 30, e -> panel.repaint()).start();
+        panel.offsetX = frame.getWidth() / 2.0 - 400; // Better initial centering
+        panel.offsetY = frame.getHeight() / 2.0 - 50;
+        new Timer(50, e -> panel.repaint()).start();
+        return panel;
     }
 }

@@ -4,9 +4,6 @@ import io.arsh.models.Layer;
 import io.arsh.models.Neuron;
 import io.arsh.utils.ReLU;
 import io.arsh.utils.Softmax;
-import io.arsh.visualizer.Visualizer;
-
-import javax.swing.*;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,9 +26,8 @@ public class Network implements Serializable {
         }
     }
 
-    public Network show() {
-        SwingUtilities.invokeLater(() -> Visualizer.show(this));
-        return this;
+    public io.arsh.visualizer.Visualizer show() {
+        return io.arsh.visualizer.Visualizer.show(this);
     }
 
     public void setLearningRate(double rate) {
@@ -103,7 +99,7 @@ public class Network implements Serializable {
         }
         sum += neuron.getBias();
 
-        neuron.setZ(sum);                    // store pre-activation
+        neuron.setZ(sum); // store pre-activation
         double activated = ReLU.calculate(sum);
         neuron.setValue(activated);
 
@@ -141,8 +137,7 @@ public class Network implements Serializable {
                 }
 
                 neuron.setGradient(
-                        errorSum * ReLU.calculateDerivative(neuron.getZ())
-                );
+                        errorSum * ReLU.calculateDerivative(neuron.getZ()));
             }
         }
 
