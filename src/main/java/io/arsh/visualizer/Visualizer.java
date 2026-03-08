@@ -17,7 +17,7 @@ public class Visualizer extends JPanel {
 
     private double scale = 0.8;
     private double offsetX = 50;
-    private double offsetY = 120; // Centered vertically
+    private double offsetY = 120;
 
     private Point lastMouse;
 
@@ -29,12 +29,13 @@ public class Visualizer extends JPanel {
     private int totalTrainItems = 0;
     private int trainingDelay = 50;
     private JSlider speedSlider;
+    private boolean isLetterMode = false;
 
     // Theme Colors (Matching the image)
     private static final Color BG_COLOR = new Color(0, 0, 0);
     private static final Color NEURON_BORDER = new Color(220, 220, 220, 180);
     private static final Color POS_WEIGHT = new Color(255, 255, 255); // White
-    private static final Color NEG_WEIGHT = new Color(200, 170, 0); // Dark Yellow
+    private static final Color NEG_WEIGHT = new Color(0, 0, 0); // Dark Yellow
 
     private static final int MAX_VISIBLE_NEURONS = 18;
 
@@ -139,10 +140,11 @@ public class Visualizer extends JPanel {
         g2.setColor(new Color(30, 30, 30));
         g2.fillRect(x - 5, y - 5, size + 10, size + 10);
 
-        // Pixels
+        // Pixels (EMNIST is transposed/side-ways by default)
         for (int i = 0; i < 28; i++) {
             for (int j = 0; j < 28; j++) {
-                float val = (float) currentInput[i * 28 + j];
+                int index = i * 28 + j;
+                float val = (float) currentInput[index];
                 g2.setColor(new Color(val, val, val));
                 g2.fillRect(x + j * (size / 28), y + i * (size / 28), (size / 28) + 1, (size / 28) + 1);
             }
@@ -151,7 +153,9 @@ public class Visualizer extends JPanel {
         // Target Label
         if (currentTarget != -1) {
             g2.setColor(POS_WEIGHT);
-            g2.drawString("TARGET: " + currentTarget, x, y + size + 25);
+            String targetStr = isLetterMode ? String.valueOf((char) ('A' + currentTarget - 1))
+                    : String.valueOf(currentTarget);
+            g2.drawString("TARGET: " + targetStr, x, y + size + 25);
         }
     }
 
@@ -164,32 +168,34 @@ public class Visualizer extends JPanel {
             return;
 
         int x = getWidth() - 300;
-        int y = getHeight() - 320;
+        int count = output.length;
+        int rowHeight = count > 10 ? 18 : 25;
+        int panelHeight = count * rowHeight + 20;
+        int y = getHeight() - panelHeight - 50;
 
         g2.setColor(Color.WHITE);
         g2.setFont(new Font("SansSerif", Font.BOLD, 14));
         g2.drawString("LIVE PREDICTIONS", x, y - 10);
 
-        for (int i = 0; i < 10; i++) {
-            int barY = y + i * 25;
+        for (int i = 0; i < count; i++) {
+            int barY = y + i * rowHeight;
             double p = output[i];
-
-            g2.setColor(new Color(255, 255, 255, 100));
-            g2.setFont(new Font("Monospaced", Font.PLAIN, 12));
-            g2.drawString(i + ":", x, barY + 15);
 
             // Bar BG
             g2.setColor(new Color(255, 255, 255, 20));
-            g2.fillRoundRect(x + 25, barY + 2, 200, 16, 4, 4);
+            g2.fillRoundRect(x + 25, barY + 2, 200, rowHeight - 4, 4, 4);
 
             // Bar Fill
             g2.setColor(p > 0.5 ? POS_WEIGHT : new Color(100, 100, 100));
             int barWidth = (int) (Math.max(0, Math.min(1, p)) * 200);
-            g2.fillRoundRect(x + 25, barY + 2, barWidth, 16, 4, 4);
+            g2.fillRoundRect(x + 25, barY + 2, barWidth, rowHeight - 4, 4, 4);
 
-            // Percentage
+            // Label & Percentage
             g2.setColor(Color.WHITE);
-            g2.drawString(String.format("%.1f%%", p * 100), x + 235, barY + 15);
+            g2.setFont(new Font("Monospaced", Font.PLAIN, count > 10 ? 10 : 12));
+            String labelStr = (isLetterMode && i < 26) ? String.valueOf((char) ('A' + i)) : String.valueOf(i);
+            g2.drawString(labelStr + ":", x, barY + rowHeight - 7);
+            g2.drawString(String.format("%.1f%%", p * 100), x + 235, barY + rowHeight - 7);
         }
     }
 
@@ -219,7 +225,16 @@ public class Visualizer extends JPanel {
         this.totalEpochs = totalEpochs;
         this.trainIndex = index;
         this.totalTrainItems = total;
+        // Auto-detect letter mode based on target range (EMNIST letters are 1-26, but
+        // let's check index range)
+        if (target >= 1 && target <= 26 && network.getLayers().getLast().getNeurons().size() > 10) {
+            this.isLetterMode = true;
+        }
         repaint();
+    }
+
+    public void setLetterMode(boolean letterMode) {
+        this.isLetterMode = letterMode;
     }
 
     private void drawNetwork(Graphics2D g2) {
@@ -326,11 +341,12 @@ public class Visualizer extends JPanel {
                 g2.setStroke(new BasicStroke(1.5f));
                 g2.drawOval(x - neuronRadius, y - neuronRadius, neuronSize, neuronSize);
 
-                // Output labels (0-9)
+                // Output labels (0-9 or A-Z)
                 if (i == layerCount - 1) {
                     g2.setColor(Color.WHITE);
                     g2.setFont(new Font("SansSerif", Font.PLAIN, 16));
-                    g2.drawString("" + n, x + 25, y + 7);
+                    String labelStr = isLetterMode ? String.valueOf((char) ('A' + n)) : String.valueOf(n);
+                    g2.drawString(labelStr, x + 25, y + 7);
                 }
             }
         }

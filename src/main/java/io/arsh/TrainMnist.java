@@ -8,7 +8,7 @@ public class TrainMnist {
         io.arsh.visualizer.Visualizer viz = net.show();
         net.setLearningRate(0.01);
 
-        MnistCSV.load("mnist_train.csv", 10000);
+        MnistCSV.load("mnist_train.csv", 10000, false);
 
         int epochs = 10;
         for (int epoch = 0; epoch < epochs; epoch++) {
@@ -17,7 +17,7 @@ public class TrainMnist {
                 double[] input = MnistCSV.images.get(i);
                 int label = MnistCSV.labels.get(i);
 
-                net.train(input, MnistCSV.oneHot(label));
+                net.train(input, MnistCSV.oneHot(label, 10));
 
                 // Update visualizer
                 viz.updateTraining(input, label, epoch, epochs, i, MnistCSV.images.size());

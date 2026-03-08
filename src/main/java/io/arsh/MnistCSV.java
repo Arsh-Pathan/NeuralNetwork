@@ -10,7 +10,7 @@ public class MnistCSV {
     public static List<double[]> images = new ArrayList<>();
     public static List<Integer> labels = new ArrayList<>();
 
-    public static void load(String path, int limit) throws Exception {
+    public static void load(String path, int limit, boolean transpose) throws Exception {
 
         images.clear();
         labels.clear();
@@ -31,6 +31,16 @@ public class MnistCSV {
             for (int i = 1; i < parts.length; i++)
                 img[i - 1] = Integer.parseInt(parts[i]) / 255.0;
 
+            if (transpose) {
+                double[] transposed = new double[784];
+                for (int y = 0; y < 28; y++) {
+                    for (int x = 0; x < 28; x++) {
+                        transposed[x * 28 + y] = img[y * 28 + x];
+                    }
+                }
+                img = transposed;
+            }
+
             labels.add(label);
             images.add(img);
             count++;
@@ -41,9 +51,15 @@ public class MnistCSV {
         System.out.println("Loaded " + count + " images from " + path);
     }
 
-    public static double[] oneHot(int digit) {
-        double[] t = new double[10];
-        t[digit] = 1.0;
+    public static double[] oneHot(int digit, int size) {
+        double[] t = new double[size];
+        if (digit >= 0 && digit < size) {
+            t[digit] = 1.0;
+        }
         return t;
+    }
+
+    public static double[] oneHotLetter(int label) {
+        return oneHot(label - 1, 26);
     }
 }
