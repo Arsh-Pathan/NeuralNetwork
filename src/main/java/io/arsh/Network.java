@@ -99,7 +99,7 @@ public class Network implements Serializable {
         }
         sum += neuron.getBias();
 
-        neuron.setZ(sum); // store pre-activation
+        neuron.setZ(sum);
         double activated = ReLU.calculate(sum);
         neuron.setValue(activated);
 

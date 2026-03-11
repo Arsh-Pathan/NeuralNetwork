@@ -41,7 +41,4 @@ bin/
 ### Mac OS ###
 .DS_Store
 
-emnist-letters-test.csv
-emnist-letters-train.csv
-mnist_test.csv
-mnist_train.csv
+.csv

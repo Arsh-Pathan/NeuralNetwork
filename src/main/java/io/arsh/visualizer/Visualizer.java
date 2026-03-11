@@ -27,7 +27,7 @@ public class Visualizer extends JPanel {
     private int totalEpochs = 0;
     private int trainIndex = 0;
     private int totalTrainItems = 0;
-    private int trainingDelay = 50;
+    private int trainingDelay = 25;
     private JSlider speedSlider;
     private boolean isLetterMode = false;
 
@@ -37,7 +37,7 @@ public class Visualizer extends JPanel {
     private static final Color POS_WEIGHT = new Color(255, 255, 255); // White
     private static final Color NEG_WEIGHT = new Color(0, 0, 0); // Dark Yellow
 
-    private static final int MAX_VISIBLE_NEURONS = 18;
+    private static final int MAX_VISIBLE_NEURONS = 20;
 
     public Visualizer(Network network) {
         this.network = network;
@@ -252,8 +252,21 @@ public class Visualizer extends JPanel {
 
         for (int i = 0; i < layerCount; i++) {
             int count = layers.get(i).getNeurons().size();
-            int visibleCount = Math.min(count, MAX_VISIBLE_NEURONS);
-            isCapped[i] = count > MAX_VISIBLE_NEURONS;
+
+            int maxNeuron = MAX_VISIBLE_NEURONS;
+            if (i == 0) {
+                maxNeuron = 13;
+            } else if (i == layerCount - 1) {
+                maxNeuron = 13;
+            } else if (i == (layerCount / 2) - 1) {
+                if (layerCount % 2 == 0) {
+                    maxNeuron = 22;
+                } else {
+                    maxNeuron = 24;
+                }
+            }
+            int visibleCount = Math.min(count, maxNeuron);
+            isCapped[i] = count > maxNeuron;
 
             neuronY[i] = new int[visibleCount];
             int totalHeight = (visibleCount - 1) * neuronGap;
@@ -303,13 +316,13 @@ public class Visualizer extends JPanel {
                 g2.drawString("784", x - 100, 210);
 
                 g2.setStroke(new BasicStroke(2));
-                int topY = neuronY[i][0] - 15;
-                int botY = neuronY[i][visibleCount - 1] + 15;
+                int topY = neuronY[i][0] - 30;
+                int botY = neuronY[i][visibleCount - 1] + 30;
                 int bracketX = x - 45;
 
                 // Draw a bracket "["
-                g2.drawLine(bracketX, topY, bracketX - 10, topY); // Top tip
-                g2.drawLine(bracketX, botY, bracketX - 10, botY); // Bot tip
+                g2.drawLine(bracketX, topY, bracketX + 10, topY); // Top tip
+                g2.drawLine(bracketX, botY, bracketX + 10, botY); // Bot tip
                 g2.drawLine(bracketX, topY, bracketX, botY); // Main vertical line
             }
 

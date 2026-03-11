@@ -20,4 +20,5 @@ public class Softmax {
 
         return out;
     }
+
 }
