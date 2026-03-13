@@ -1,6 +1,6 @@
 package io.arsh;
 
-public class TrainMnist {
+public class TrainNumbers {
 
     public static void main(String[] args) throws Exception {
 
@@ -8,7 +8,7 @@ public class TrainMnist {
         io.arsh.visualizer.Visualizer viz = net.show();
         net.setLearningRate(0.01);
 
-        MnistCSV.load("mnist_train.csv", 10000, false);
+        MnistCSV.load("mnist_numbers.csv", 10000, false);
 
         int epochs = 10;
         for (int epoch = 0; epoch < epochs; epoch++) {

@@ -12,9 +12,7 @@ public class TrainLetters {
         viz.setLetterMode(true);
         net.setLearningRate(0.001);
 
-        // Load EMNIST letters (labels 1-26)
-        System.out.println("Loading EMNIST letters...");
-        MnistCSV.load("emnist-letters-train.csv", 124800, true);
+        MnistCSV.load("mnist_letters.csv", 124800, true);
 
         int epochs = 20;
         for (int epoch = 0; epoch < epochs; epoch++) {
